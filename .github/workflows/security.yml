@@ -1,0 +1,51 @@
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  sast:
+    name: SAST (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install bandit
+      # -ll: severidade Media ou superior. -ii: confianca Media ou superior.
+      # Low fica de fora (ver docs/12_devsecops.md: muito ruido/falso positivo).
+      - run: bandit -r app -ll -ii
+
+  sca:
+    name: SCA (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      # qualquer CVE conhecida bloqueia: dado de saude, tolerancia zero a dependencia vulneravel.
+      - run: pip-audit -r requirements.txt
+
+  tests:
+    name: Testes (funcionais + autorizacao)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: pytest -v
+
+  security-gate:
+    name: Security gate
+    needs: [sast, sca, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "SAST, SCA e testes de autorizacao passaram. Liberado para merge."

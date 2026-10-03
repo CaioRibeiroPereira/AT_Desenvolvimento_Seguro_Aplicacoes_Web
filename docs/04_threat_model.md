@@ -65,7 +65,7 @@ Legenda: S = Spoofing, T = Tampering, R = Repudiation, I = Information disclosur
 | T-11 | R | Alteração ou exclusão sem registro de quem fez | MC-10 | Campo `created_by` preenchido com o usuário autenticado e log de auditoria | Prevista |
 | T-12 | D | Excesso de requisições esgota a API | MC-09 | Rate limiting e limites de tamanho de payload | Parcial |
 | T-13 | E | Papel comum acessa rota de administrador | MC-05 | RBAC com três papéis e checagem centralizada | Existente |
-| T-14 | I | Ids sequenciais facilitam varredura | MC-08 | Ownership impede leitura mesmo com id válido; respostas 404 uniformes | Existente |
+| T-14 | I | Ids sequenciais facilitam varredura | MC-08 | Ownership impede leitura do conteúdo; porém 403 (existe) e 404 (não existe) ainda são distinguíveis | Parcial |
 
 ### 4.3 Componente: integração M2M do laboratório (S4)
 
@@ -102,7 +102,7 @@ Legenda: S = Spoofing, T = Tampering, R = Repudiation, I = Information disclosur
 | T-11 | Repúdio de ações | R | A2 | S1 | A09:2021 Logging and Monitoring Failures | Auditoria com usuário autenticado | Prevista |
 | T-12 | Flood na API | D | A6 | S1 | API4:2023 Unrestricted Resource Consumption | Rate limiting | Parcial |
 | T-13 | Escalada de privilégio | E | A1, A2 | S1 | API5:2023 Broken Function Level Authorization | RBAC | Existente |
-| T-14 | Varredura por ids | I | A1 | S1 | API1:2023 | Ownership e 404 uniforme | Existente |
+| T-14 | Varredura por ids | I | A1 | S1 | API1:2023 | Ownership bloqueia leitura; 403 vs 404 ainda distingue existência | Parcial |
 | T-15 | Falsificação do laboratório | S | A4 | S4 | API2:2023 | Client Credentials | Existente |
 | T-16 | Token M2M em rota clínica | E | A1, A2 | S4, S1 | API5:2023 | Escopo e claims | Existente |
 | T-17 | Excesso de dados ao laboratório | I | A1 | S4 | API3:2023 | Resposta mínima em `/slots` | Existente |
@@ -114,7 +114,7 @@ Legenda: S = Spoofing, T = Tampering, R = Repudiation, I = Information disclosur
 
 ## 6. Resumo do estado atual
 
-- **Existentes (20):** T-01 a T-10, T-13 a T-17, T-19 a T-22. Cobrem autenticação (MFA, hash, JWT, rate limiting no login), autorização (BOLA, RBAC, ownership), entrada validada, escopos M2M, XSS stored, CORS e cabeçalhos de segurança.
-- **Parciais (2):** T-12 e T-18. Existe rate limiting geral (100/minuto por IP), mas falta limite de tamanho de payload (T-12) e um limite específico por cliente M2M, não só por IP (T-18).
+- **Existentes (19):** T-01 a T-10, T-13, T-15 a T-17, T-19 a T-22. Cobrem autenticação (MFA, hash, JWT, rate limiting no login), autorização (BOLA, RBAC, ownership), entrada validada, escopos M2M, XSS stored, CORS e cabeçalhos de segurança.
+- **Parciais (3):** T-12, T-14 e T-18. Rate limiting geral existe (100/minuto por IP), mas falta limite de tamanho de payload (T-12) e um limite específico por cliente M2M (T-18). T-14: ownership bloqueia a leitura do conteúdo, mas 403 (existe, não é seu) e 404 (não existe) continuam distinguíveis, permitindo mapear ids válidos por tentativa — descoberto via teste guiado pelo threat model no Ex12 (`tests/test_ex12_seguranca.py`).
 - **Prevista (1):** T-11 (trilha de auditoria de alterações). Fora do escopo dos exercícios até aqui; fica para uma eventual revisão futura.
-- **Maior risco em aberto:** T-11, já que nenhuma alteração ou exclusão de consulta fica registrada com rastro de quem fez.
+- **Maior risco em aberto:** T-14, por afetar diretamente dado de paciente (A1) mesmo que parcialmente mitigado; avaliado como risco residual no relatório final (Ex13).
