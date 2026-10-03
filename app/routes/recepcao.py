@@ -17,7 +17,7 @@ somente_recepcao_ou_admin = require_roles(Role.recepcionista, Role.admin)
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 
-# autoescape=True explicito: controle central contra XSS stored nesta pagina.
+# autoescape=True explícito: controle central contra XSS stored nesta página.
 _env = jinja2.Environment(
     loader=jinja2.FileSystemLoader(TEMPLATES_DIR),
     autoescape=True,

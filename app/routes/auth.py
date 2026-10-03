@@ -1,6 +1,6 @@
-import hmac
 from typing import Optional
 
+import pyotp
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
@@ -11,7 +11,6 @@ from app.auth.security import (
     create_client_token,
     verify_password,
 )
-from app.config import settings
 from app.database import get_session
 from app.models.client import Client
 from app.models.user import Role, User
@@ -28,7 +27,7 @@ _CREDENCIAIS_INVALIDAS = HTTPException(
 
 
 @router.post("/login", response_model=Token)
-@limiter.limit("5/minute")  # mais restrito que o padrao global (100/minute): alvo recorrente de forca bruta
+@limiter.limit("5/minute")  # mais restrito que o padrão global (100/minute): alvo recorrente de força bruta
 def login(
     request: Request,
     form: OAuth2PasswordRequestForm = Depends(),
@@ -36,14 +35,14 @@ def login(
     session: Session = Depends(get_session),
 ) -> Token:
     user = session.exec(select(User).where(User.username == form.username)).first()
-    # hash falso quando o usuario nao existe: iguala o tempo de resposta
+    # hash falso quando o usuário não existe: iguala o tempo de resposta
     hash_alvo = user.hashed_password if user else DUMMY_HASH
     senha_ok = verify_password(form.password, hash_alvo)
     if user is None or not senha_ok:
         raise _CREDENCIAIS_INVALIDAS
 
     if user.role == Role.admin:
-        if mfa_code is None or not hmac.compare_digest(mfa_code, settings.mfa_code):
+        if not mfa_code or not user.mfa_secret or not pyotp.TOTP(user.mfa_secret).verify(mfa_code, valid_window=1):
             raise HTTPException(
                 status.HTTP_401_UNAUTHORIZED,
                 "Codigo MFA invalido ou ausente",
@@ -60,8 +59,8 @@ def client_credentials_token(
     client_secret: str = Form(...),
     session: Session = Depends(get_session),
 ) -> Token:
-    # fluxo Client Credentials (RFC 6749 4.4): sem usuario humano,
-    # o proprio cliente (laboratorio) e o titular do token
+    # fluxo Client Credentials (RFC 6749 4.4): sem usuário humano,
+    # o próprio cliente (laboratório) e o titular do token
     if grant_type != "client_credentials":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "grant_type nao suportado")
 

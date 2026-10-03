@@ -21,7 +21,7 @@ Dado de saúde é dado sensível sob a LGPD, o que eleva o peso regulatório des
 - **Implementado:** nada dedicado ainda; a estrutura modular (routes/models/schemas/database) facilita adicionar controles depois sem reescrever a aplicação.
 - **Gap:** armazenamento em memória: dado é perdido a cada reinício do processo (risco de disponibilidade dos dados, não do serviço). Também não há rate limiting, então a API está exposta a abuso de requisições.
 
-## 2. Frameworks de referência --- controles concretos
+## 2. Frameworks de referência: controles concretos
 
 | Framework | Referência | Controle já implementado |
 |---|---|---|
@@ -39,23 +39,23 @@ Gaps ainda sem controle correspondente: OWASP A01:2021 – Broken Access Control
 
 ```mermaid
 flowchart LR
-    subgraph externo["Zona nao confiavel (Internet)"]
+    subgraph externo["Zona não confiável (Internet)"]
         FE["Frontend JSON"]
-        REC["Navegador da recepcao"]
-        LAB["Laboratorio parceiro (M2M)"]
+        REC["Navegador da recepção"]
+        LAB["Laboratório parceiro (M2M)"]
     end
 
-    subgraph app["Zona da aplicacao, trust boundary: perimetro da API FastAPI"]
+    subgraph app["Zona da aplicação, trust boundary: perímetro da API FastAPI"]
         API["Rotas /consultas"]
         HTML["Rota /recepcao/agenda (Jinja2)"]
     end
 
     subgraph dados["Zona de dados, trust boundary: acesso ao armazenamento"]
-        DB[("Armazenamento em memoria\ndados de paciente/consulta")]
+        DB[("Armazenamento em memória\ndados de paciente/consulta")]
     end
 
-    FE -- "JSON: cria/le consulta (dado de paciente)" --> API
-    LAB -- "JSON: consulta horarios" --> API
+    FE -- "JSON: cria/lê consulta (dado de paciente)" --> API
+    LAB -- "JSON: consulta horários" --> API
     REC -- "HTTP GET agenda" --> HTML
     API -- "leitura/escrita" --> DB
     HTML -- "leitura" --> DB
@@ -66,7 +66,7 @@ flowchart LR
 
 **Trust boundaries identificadas:**
 
-1. **Perímetro da API** (Internet --- FastAPI): hoje é uma fronteira sem controle de autenticação, qualquer requisição que a atravessa é tratada como confiável pela aplicação. É a fronteira mais crítica em aberto neste ponto do projeto.
-2. **Acesso ao armazenamento** (aplicação --- dados): neste momento é uma fronteira fraca porque API e "banco" rodam no mesmo processo Python, sem isolamento real.
+1. **Perímetro da API** (Internet — FastAPI): hoje é uma fronteira sem controle de autenticação, qualquer requisição que a atravessa é tratada como confiável pela aplicação. É a fronteira mais crítica em aberto neste ponto do projeto.
+2. **Acesso ao armazenamento** (aplicação — dados): neste momento é uma fronteira fraca porque API e "banco" rodam no mesmo processo Python, sem isolamento real.
 
 **Fluxo de dado sensível em destaque:** o `motivo` da consulta e os identificadores de paciente/profissional atravessam a fronteira da API vindos de três origens diferentes (frontend, recepção, laboratório) e passam por dois caminhos de saída distintos: JSON (para frontend/laboratório) e HTML (para recepção), cada um com seu próprio controle de saída (`response_model` e auto-escape, respectivamente).

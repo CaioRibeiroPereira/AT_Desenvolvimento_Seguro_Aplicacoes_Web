@@ -21,6 +21,11 @@ def verificar_ownership_escrita(user: User, consulta: Consulta) -> None:
     raise HTTPException(status.HTTP_403_FORBIDDEN, "Acesso negado")
 
 
+def verificar_profissional_do_payload(user: User, profissional_id: int) -> None:
+    if user.role == Role.profissional and profissional_id != user.profissional_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Acesso negado")
+
+
 def query_visiveis(user: User):
     # where() do SQLModel gera SQL parametrizado; nunca concatenamos o valor na string.
     query = select(Consulta)

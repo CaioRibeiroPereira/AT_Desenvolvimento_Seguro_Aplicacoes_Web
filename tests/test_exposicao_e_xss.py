@@ -32,9 +32,9 @@ def test_response_model_nao_expoe_campos_internos_de_auditoria():
 
 def test_agenda_html_escapa_payload_xss_ja_armazenado():
     # simula um dado malicioso que chegou ao armazenamento por outra via
-    # (ex.: migracao de dados antiga), sem passar pela validacao da API,
-    # para provar que o auto-escape do Jinja2 continua sendo a ultima
-    # linha de defesa mesmo quando a validacao de entrada nao e o unico caminho.
+    # (ex.: migração de dados antiga), sem passar pela validação da API,
+    # para provar que o auto-escape do Jinja2 continua sendo a última
+    # linha de defesa mesmo quando a validação de entrada não e o único caminho.
     hoje = date.today().isoformat()
     with Session(test_engine) as session:
         session.add(

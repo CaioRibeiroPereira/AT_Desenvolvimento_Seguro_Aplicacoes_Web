@@ -8,7 +8,9 @@ from app.auth.ownership import (
     query_visiveis,
     verificar_ownership_escrita,
     verificar_ownership_leitura,
+    verificar_profissional_do_payload,
 )
+from app.auditoria import registrar, snapshot
 from app.database import get_session
 from app.models.consulta import Consulta
 from app.models.user import Role, User
@@ -46,10 +48,11 @@ def criar_consulta(
     user: User = Depends(somente_profissional_ou_admin),
     session: Session = Depends(get_session),
 ) -> Consulta:
-    if user.role == Role.profissional and payload.profissional_id != user.profissional_id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Acesso negado")
+    verificar_profissional_do_payload(user, payload.profissional_id)
     consulta = Consulta(created_by=user.username, internal_notes=None, **payload.model_dump())
     session.add(consulta)
+    session.flush()
+    registrar(session, user, "criar", consulta.id, None, snapshot(consulta))
     session.commit()
     session.refresh(consulta)
     return consulta
@@ -66,10 +69,11 @@ def atualizar_consulta(
     if consulta is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Consulta nao encontrada")
     verificar_ownership_escrita(user, consulta)
-    if user.role == Role.profissional and payload.profissional_id != user.profissional_id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Acesso negado")
+    verificar_profissional_do_payload(user, payload.profissional_id)
+    antes = snapshot(consulta)
     for campo, valor in payload.model_dump().items():
         setattr(consulta, campo, valor)
+    registrar(session, user, "atualizar", consulta_id, antes, snapshot(consulta))
     session.add(consulta)
     session.commit()
     session.refresh(consulta)
@@ -87,8 +91,10 @@ def atualizar_consulta_parcial(
     if consulta is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Consulta nao encontrada")
     verificar_ownership_escrita(user, consulta)
+    antes = snapshot(consulta)
     for campo, valor in payload.model_dump(exclude_unset=True).items():
         setattr(consulta, campo, valor)
+    registrar(session, user, "atualizar_parcial", consulta_id, antes, snapshot(consulta))
     session.add(consulta)
     session.commit()
     session.refresh(consulta)
@@ -105,5 +111,6 @@ def deletar_consulta(
     if consulta is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Consulta nao encontrada")
     verificar_ownership_escrita(user, consulta)
+    registrar(session, user, "deletar", consulta_id, snapshot(consulta), None)
     session.delete(consulta)
     session.commit()

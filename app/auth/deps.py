@@ -7,7 +7,14 @@ from app.auth.security import decode_access_token
 from app.database import get_session
 from app.models.user import Role, User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", scheme_name="UsuarioLogin")
+# esquema separado só para documentar corretamente o fluxo M2M no OpenAPI:
+# sem isso, o Swagger mostrava /slots exigindo login humano (/auth/login),
+# quando na verdade exige um token de /auth/token (client credentials). Sem
+# scheme_name distinto, os dois colidem no mesmo nome e um sobrescreve o outro.
+client_oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/auth/token", scheme_name="ClienteM2M"
+)
 
 _NAO_AUTENTICADO = HTTPException(
     status.HTTP_401_UNAUTHORIZED,
@@ -41,7 +48,7 @@ def require_roles(*roles: Role):
     return checker
 
 
-def get_current_client(token: str = Depends(oauth2_scheme)) -> dict:
+def get_current_client(token: str = Depends(client_oauth2_scheme)) -> dict:
     try:
         claims = decode_access_token(token)
     except jwt.PyJWTError:

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.helpers import MFA, SENHAS, auth_header
+from tests.helpers import SENHAS, auth_header, codigo_mfa
 
 client = TestClient(app)
 
@@ -26,7 +26,7 @@ def test_login_admin_exige_mfa():
     dados = {"username": "admin", "password": SENHAS["admin"]}
     assert client.post("/auth/login", data=dados).status_code == 401
     assert client.post("/auth/login", data={**dados, "mfa_code": "000000"}).status_code == 401
-    assert client.post("/auth/login", data={**dados, "mfa_code": MFA}).status_code == 200
+    assert client.post("/auth/login", data={**dados, "mfa_code": codigo_mfa()}).status_code == 200
 
 
 def test_login_com_senha_errada_ou_usuario_inexistente_da_mesma_resposta():
