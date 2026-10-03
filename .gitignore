@@ -1,0 +1,22 @@
+# Ambiente virtual
+.venv/
+
+# Cache do Python e do pytest
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Segredos reais - nunca entregar, so o .env.example
+.env
+
+# Banco de dados local (SQLite, a partir do Ex11)
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Editores/OS
+.vscode/
+.idea/
+.DS_Store

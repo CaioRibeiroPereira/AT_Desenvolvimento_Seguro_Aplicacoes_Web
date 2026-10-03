@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Clinica - Recepcao{% endblock %}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 0; background: #f4f6f8; color: #1a1a1a; }
+        header { background: #0b3d63; color: white; padding: 1rem 2rem; }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        main { padding: 1.5rem 2rem; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+        th, td { text-align: left; padding: 0.6rem 0.9rem; border-bottom: 1px solid #e2e6ea; }
+        th { background: #eef2f5; font-size: 0.85rem; text-transform: uppercase; letter-spacing: .03em; }
+        tr:hover { background: #f9fbfc; }
+        .status { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; }
+        .status-agendada { background: #fff4cc; color: #7a5c00; }
+        .status-confirmada { background: #d6f5e0; color: #146c2e; }
+        .status-cancelada { background: #fde0e0; color: #a11414; }
+        .status-realizada { background: #e0e7fd; color: #2c3fa1; }
+        .vazio { color: #666; font-style: italic; padding: 1rem 0; }
+        footer { padding: 1rem 2rem; font-size: 0.8rem; color: #777; }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <header>
+        <h1>{% block header_title %}Rede de Clinicas{% endblock %}</h1>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        {% block footer %}Uso interno - recepcao{% endblock %}
+    </footer>
+</body>
+</html>

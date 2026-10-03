@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Agenda do dia - {{ data_referencia }}{% endblock %}
+{% block header_title %}Agenda do dia — {{ data_referencia }}{% endblock %}
+
+{% block content %}
+    {# nunca usar |safe aqui: motivo vem de input do usuario #}
+    {% if consultas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Horario</th>
+                    <th>Paciente</th>
+                    <th>Profissional</th>
+                    <th>Motivo</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for consulta in consultas %}
+                <tr>
+                    <td>{{ consulta.data_hora.strftime("%H:%M") }}</td>
+                    <td>#{{ consulta.paciente_id }}</td>
+                    <td>#{{ consulta.profissional_id }}</td>
+                    <td>{{ consulta.motivo }}</td>
+                    <td>
+                        <span class="status status-{{ consulta.status.value }}">
+                            {{ consulta.status.value }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="vazio">Nenhuma consulta agendada para {{ data_referencia }}.</p>
+    {% endif %}
+{% endblock %}
