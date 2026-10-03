@@ -1,33 +1,10 @@
 # Exercício 11: Persistência segura
 
-## 1. Migração para SQLModel
+1. **Migração para SQLModel:** `Consulta`, `User` e `Client` passaram a ser tabelas em um banco SQLite (`app/database/session.py`). Antes, os dados ficavam em dicionários Python e eram perdidos ao reiniciar a aplicação.
+2. **Sessão por requisição:** `get_session()`, com `Depends(get_session)`, abre e fecha a sessão do banco em cada requisição que acessa dados. As rotas não gerenciam conexões diretamente.
+3. **Consultas parametrizadas:** o SQLModel usa recursos como `select()`, `session.get()` e `.where()` para gerar consultas parametrizadas, evitando concatenar dados do usuário em comandos SQL. Como antes não havia banco de dados, não existia uma camada SQL vulnerável para comparar.
+4. **Configuração do banco:** `DATABASE_URL` é lida do `.env` por meio de `Settings`, em `app/config.py`, com um valor padrão para desenvolvimento. A conexão não fica fixa no código-fonte, e o `.env.example` não contém segredos reais.
+5. **Criação das tabelas e dados iniciais:** `init_db()`, executado no `lifespan` em `app/main.py`, cria as tabelas e cadastra os usuários e o cliente M2M na primeira inicialização, sem sobrescrever dados existentes.
+6. **Testes:** `tests/conftest.py` utiliza SQLite em memória com `StaticPool` e substitui `get_session` por meio de `app.dependency_overrides`. Os 27 testes existentes continuam passando sem mudanças no comportamento da aplicação.
 
-`Consulta`, `User` e `Client` viraram tabelas SQLModel (`table=True`), com SQLite como banco (`app/database/session.py`). Antes, tudo vivia em dicts Python em memória, perdidos a cada reinício do processo.
-
-## 2. Sessão via injeção de dependência
-
-`get_session()` (em `app/database/session.py`) abre e fecha a sessão por requisição, injetada com `Depends(get_session)` em toda rota que acessa dados — mesmo padrão de dependency injection já usado para autenticação desde o Ex6. Nenhuma rota abre conexão com o banco por conta própria.
-
-## 3. Queries sempre parametrizadas
-
-Todo acesso a dado usa o query builder do SQLModel (`select(...)`, `session.get(...)`, `.where(...)`), que gera SQL parametrizado nos bastidores — em nenhum lugar do código um valor de usuário é concatenado numa string SQL. Exemplos:
-
-```python
-session.exec(select(User).where(User.username == claims["sub"])).first()
-session.get(Consulta, consulta_id)
-query = select(Consulta).where(Consulta.profissional_id == user.profissional_id)
-```
-
-Como a aplicação nunca teve uma camada SQL antes deste exercício (Ex1 a Ex10 usavam dict em memória), não existe um "antes" vulnerável a SQL injection para comparar — a camada de persistência já nasce parametrizada.
-
-## 4. Credenciais via BaseSettings e .env
-
-`DATABASE_URL` é lido do `.env` via `Settings` (`app/config.py`), com valor padrão de desenvolvimento (`sqlite:///./clinica.db`). Nenhuma string de conexão fica hardcoded no código-fonte. O `.env.example` traz a variável sem segredo real.
-
-## 5. Criação de tabelas e seed
-
-`init_db()` roda no `lifespan` da aplicação (`app/main.py`): cria as tabelas (`SQLModel.metadata.create_all`) e popula os usuários e o cliente M2M na primeira subida, sem sobrescrever dados já existentes.
-
-## 6. Testes
-
-`tests/conftest.py` usa um SQLite em memória com `StaticPool` (uma única conexão compartilhada durante toda a suíte), sobrescrevendo `get_session` via `app.dependency_overrides`. Os 27 testes já existentes continuam passando sem alteração de comportamento — só a camada de armazenamento por baixo mudou.
+**EVIDÊNCIAS**

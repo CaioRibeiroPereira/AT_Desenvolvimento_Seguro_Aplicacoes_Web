@@ -7,7 +7,7 @@ class Settings(BaseSettings):
 
     secret_key: str = Field(min_length=32)
     access_token_expire_minutes: int = 30
-    mfa_code: str
+    environment: str = "development"
     seed_admin_password: str
     seed_dr_silva_password: str
     seed_dr_souza_password: str

@@ -16,3 +16,4 @@ class User(SQLModel, table=True):
     hashed_password: str
     role: Role
     profissional_id: Optional[int] = None
+    mfa_secret: Optional[str] = None

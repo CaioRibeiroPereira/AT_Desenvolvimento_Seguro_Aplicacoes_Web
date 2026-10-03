@@ -21,7 +21,7 @@ def listar_horarios_ocupados(
     data: date = Query(default_factory=date.today),
     session: Session = Depends(get_session),
 ) -> List[Consulta]:
-    # so profissional_id e data_hora saem daqui: nada de paciente ou motivo
+    # só profissional_id e data_hora saem daqui: nada de paciente ou motivo
     inicio = datetime.combine(data, time.min)
     fim = datetime.combine(data, time.max)
     query = select(Consulta).where(Consulta.data_hora >= inicio, Consulta.data_hora <= fim)

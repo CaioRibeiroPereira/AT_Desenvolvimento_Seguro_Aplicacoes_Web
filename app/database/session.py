@@ -2,8 +2,8 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
 
-# check_same_thread so se aplica ao SQLite (permite a mesma conexao entre
-# as threads do uvicorn); credenciais/URL vem do .env via BaseSettings,
+# check_same_thread só se aplica ao SQLite (permite a mesma conexão entre
+# as threads do uvicorn); credenciais/URL vêm do .env via BaseSettings,
 # nunca hardcoded aqui.
 connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 engine = create_engine(settings.database_url, connect_args=connect_args)

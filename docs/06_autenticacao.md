@@ -1,46 +1,33 @@
 # Exercício 6: Autenticação e autorização
 
-## 1. O que foi implementado
+**Autenticação:** O login usa OAuth2PasswordBearer e devolve um JWT (HS256) com `sub`, `role` e `exp`, que expira em 30 minutos. A verificação aceita só o algoritmo esperado, rejeitando tokens adulterados. As senhas ficam apenas como hash bcrypt, nunca em texto plano, e o erro de login é o mesmo para usuário inexistente e senha errada.
 
-- **Login com OAuth2PasswordBearer:** `POST /auth/login` recebe usuário e senha em formulário e devolve um JWT (`app/routes/auth.py`).
-- **Hashing bcrypt:** senhas nunca são guardadas em texto plano. Só o hash bcrypt (com salt) fica no armazenamento (`app/auth/security.py`).
-- **JWT com expiração:** o token carrega `sub`, `role`, `iat` e `exp` (30 minutos, configurável). A verificação exige `exp` e `sub` e aceita só o algoritmo HS256, o que rejeita tokens `alg: none`.
-- **MFA simulado para admin:** a conta admin só recebe token se enviar, junto com a senha, o código MFA configurado em `.env`. A comparação usa `hmac.compare_digest`.
-- **Erro de login genérico:** usuário inexistente e senha errada devolvem a mesma resposta, e um hash falso é verificado quando o usuário não existe, para igualar o tempo de resposta.
-- **Segredos fora do código:** chave do JWT, código MFA e senhas iniciais vêm de `.env` via `BaseSettings`. O repositório só tem `.env.example`.
-- **Camada única de segurança:** hashing e JWT em `app/auth/security.py`, dependências de autenticação e papéis em `app/auth/deps.py`, ownership em `app/auth/ownership.py`.
+**MFA por usuário (TOTP):** O admin só recebe token se enviar, com a senha, o código de 6 dígitos do seu autenticador (TOTP, RFC 6238). Cada conta admin tem um segredo próprio, gerado no seed e guardado no banco.
 
-## 2. Modelo de autorização: RBAC mais ownership por recurso
+**Segredos:** Chave do JWT e senhas iniciais vêm do `.env` via `BaseSettings`, e o projeto entrega só o `.env.example`. Os segredos TOTP ficam no banco, por usuário.
 
-| Papel | Consultas | Área admin |
+**Autorização:** RBAC com ownership. Há três papéis fixos, então o RBAC é simples e fácil de auditar. O ABAC não foi usado porque não há atributos além de papel e dono do registro. O RBAC sozinho não diz de quem é a consulta, por isso foi somada a verificação de ownership: o profissional só gerencia consultas com o seu `profissional_id`, o admin gerencia qualquer uma e o recepcionista não cria nem altera.
+
+**Contas de demonstração (ambiente local, não usadas em produção):** as senhas iniciais são definidas pelas variáveis `SEED_*_PASSWORD` do `.env`, cujo modelo está em `.env.example`. Nenhuma senha fica versionada no repositório.
+
+| Usuário | Papel | Observação |
 |---|---|---|
-| recepcionista | Lê a lista e a consulta por id. Não cria nem altera | Bloqueado |
-| profissional | Cria e gerencia só consultas em que `profissional_id` é o seu | Bloqueado |
-| admin | Cria e gerencia qualquer consulta | Acesso, com MFA |
+| admin | admin | Exige MFA (código TOTP do autenticador) |
+| dr_silva | profissional | `profissional_id` 10 |
+| dr_souza | profissional | `profissional_id` 20 |
+| recepcao | recepcionista | Só leitura de consultas |
 
-**Por que RBAC:** o sistema tem exatamente três papéis fixos e as permissões seguem o papel. RBAC é simples de implementar (uma dependência `require_roles`), fácil de auditar e de testar.
+**Teste:** O pytest valida que recepcionista e profissional recebem 403 na rota admin, que sem token o retorno é 401 e que o login do admin exige MFA.
 
-**Por que ABAC não:** ABAC avalia regras sobre muitos atributos (horário, local, sensibilidade do dado). Aqui não há atributos além de papel e dono do registro, então a complexidade extra não se justifica.
+**Limitação:** A leitura por id ainda não checa o dono do registro, e a agenda da recepção continua sem autenticação.
 
-**Por que só RBAC não basta:** o RBAC diz que um profissional pode alterar consultas, mas não diz de quem. A regra "profissional só gerencia consultas dos próprios pacientes" depende do recurso, então foi somada a verificação de ownership (`verificar_ownership`), que compara `consulta.profissional_id` com o `profissional_id` do usuário autenticado.
+## Evidências
 
-## 3. Proteção das rotas
-
-| Rota | Exigência |
-|---|---|
-| `POST /auth/login` | Pública |
-| `GET /admin/usuarios` | Papel admin |
-| `POST /consultas` | Profissional (só para si) ou admin |
-| `PUT`, `PATCH`, `DELETE /consultas/{id}` | Profissional dono ou admin, com ownership |
-| `GET /consultas` e `GET /consultas/{id}` | Qualquer usuário autenticado |
-| `GET /recepcao/agenda` | Ainda sem autenticação |
-
-## 4. Limitações conhecidas nesta fase
-
-- `GET /consultas/{id}` e `GET /consultas` exigem login, mas não checam o dono do registro. Um profissional autenticado consegue ler a consulta de outro profissional trocando o id (BOLA, ameaça T-07).
-- A página `/recepcao/agenda` continua acessível sem autenticação (ameaça T-21).
-- O armazenamento de usuários é em memória e as senhas iniciais vêm de variáveis de ambiente.
-
-## 5. Teste automatizado
-
-`tests/test_autorizacao.py` valida, entre outros casos, que recepcionista e profissional recebem 403 em `GET /admin/usuarios`, que a rota sem token retorna 401, que o login admin exige MFA e que um profissional não altera a consulta de outro.
+- Credenciais de demonstração do `.env`
+- **1. Login retornando JWT:** em `POST /auth/login` entrei com as credenciais do dr_silva. Login bem-sucedido, a API devolve um JWT que identifica o usuário nas próximas requisições.
+- **2. Rota protegida negando sem token:** executei sem estar autenticado e o resultado foi 401.
+- **3. Usuário sem papel admin bloqueado:** loguei como dr_silva e executei `GET /admin/usuarios`. A saída foi erro 403 (acesso negado), por não ser administrador.
+- **4. Teste com e sem MFA:**
+  - Sem MFA: `{"detail":"Codigo MFA invalido ou ausente"}`. A senha estava certa, mas o login foi negado por falta do código.
+  - Com o código TOTP do autenticador: devolveu o `access_token` do admin.
+- **5. Pytest**

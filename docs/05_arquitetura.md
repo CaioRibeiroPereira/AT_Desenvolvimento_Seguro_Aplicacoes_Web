@@ -20,31 +20,31 @@ Complementa o threat model (`04_threat_model.md`) com as partições do sistema,
 
 ```mermaid
 flowchart TB
-    subgraph b1["Fora do sistema (nao confiavel)"]
-        P1["P1 Clientes: frontend JSON, recepcao, laboratorio M2M"]
+    subgraph b1["Fora do sistema (não confiável)"]
+        P1["P1 Clientes: frontend JSON, recepção, laboratório M2M"]
     end
 
     subgraph borda["Fronteira B1: borda HTTP"]
         P2["P2 Borda HTTP: CORS, headers, rate limiting"]
     end
 
-    subgraph app["Aplicacao FastAPI"]
+    subgraph app["Aplicação FastAPI"]
         P3["P3 Rotas: /consultas, /recepcao/agenda"]
-        P4["P4 Validacao e contratos: schemas Pydantic"]
-        P5["P5 Seguranca: autenticacao, autorizacao, ownership (prevista)"]
-        P6["P6 Apresentacao: Jinja2 com auto-escape"]
+        P4["P4 Validação e contratos: schemas Pydantic"]
+        P5["P5 Segurança: autenticação, autorização, ownership (prevista)"]
+        P6["P6 Apresentação: Jinja2 com auto-escape"]
     end
 
     subgraph dados["Fronteira B2: dados"]
         P7[("P7 Dados: modelos e armazenamento")]
     end
 
-    subgraph b3["Fronteira B3: configuracao e cadeia de build"]
+    subgraph b3["Fronteira B3: configuração e cadeia de build"]
         P8["P8 Segredos e .env (previsto)"]
-        P9["P9 Dependencias e pipeline"]
+        P9["P9 Dependências e pipeline"]
     end
 
-    P1 -- "F1 F2 F3 requisicao" --> P2
+    P1 -- "F1 F2 F3 requisição" --> P2
     P2 --> P3
     P3 -- "F4 valida entrada" --> P4
     P3 -- "F5 decide acesso" --> P5
@@ -52,8 +52,8 @@ flowchart TB
     P3 -- "F8 renderiza" --> P6
     P2 -- "F9 resposta filtrada ou HTML escapado" --> P1
     P8 -- "F10 segredos" --> P2
-    P8 -- "F10 conexao" --> P7
-    P9 -- "codigo e bibliotecas" --> P2
+    P8 -- "F10 conexão" --> P7
+    P9 -- "código e bibliotecas" --> P2
 ```
 
 - **B1, Internet para borda HTTP:** todo dado que entra é não confiável.

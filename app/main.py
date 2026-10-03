@@ -18,11 +18,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
+em_producao = settings.environment == "production"
+
 app = FastAPI(
     title="API de Agendamento Clinico",
     description="API REST para agendamento de consultas medicas.",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url=None if em_producao else "/docs",
+    openapi_url=None if em_producao else "/openapi.json",
 )
 
 app.state.limiter = limiter
